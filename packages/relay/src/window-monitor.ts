@@ -37,6 +37,10 @@ export class WindowMonitor extends EventEmitter {
   private latestMeta: { cdpReachable: boolean; cdpError?: string } = {
     cdpReachable: false,
   };
+  private lastDiagnostics: { targetCount: number; pageTargetCount: number } = {
+    targetCount: 0,
+    pageTargetCount: 0,
+  };
 
   constructor(config: RelayConfig) {
     super();
@@ -120,9 +124,17 @@ export class WindowMonitor extends EventEmitter {
         cdpReachable: false,
         cdpError: e instanceof Error ? e.message : String(e),
       };
+      this.lastDiagnostics = { targetCount: 0, pageTargetCount: 0 };
       this.emit('state', this.buildState());
       return;
     }
+
+    this.lastDiagnostics = {
+      targetCount: targets.length,
+      pageTargetCount: targets.filter(
+        t => t.type === 'page' && Boolean(t.webSocketDebuggerUrl)
+      ).length,
+    };
 
     const pages = pickWorkbenchPages(targets);
     const seen = new Set<string>();
@@ -189,6 +201,12 @@ export class WindowMonitor extends EventEmitter {
     return {
       cdpReachable: this.latestMeta.cdpReachable,
       cdpError: this.latestMeta.cdpError,
+      diagnostics: this.latestMeta.cdpReachable
+        ? {
+            targetCount: this.lastDiagnostics.targetCount,
+            pageTargetCount: this.lastDiagnostics.pageTargetCount,
+          }
+        : undefined,
       windows,
       updatedAt: Date.now(),
     };

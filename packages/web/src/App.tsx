@@ -28,6 +28,7 @@ export function App(): React.ReactElement {
   const [busy, setBusy] = useState<string | null>(null);
   const [pick, setPick] = useState<string | null>(null);
   const [relayUrlInput, setRelayUrlInput] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     setRelayUrlInput(getRelayBaseUrl());
@@ -100,6 +101,7 @@ export function App(): React.ReactElement {
   const runAck = useCallback(
     (label: string, promise: Promise<unknown>) => {
       setBusy(label);
+      setActionError(null);
       promise.finally(() => setBusy(null));
     },
     []
@@ -182,7 +184,7 @@ export function App(): React.ReactElement {
       </header>
 
       <main className="flex flex-1 flex-col gap-4 px-4 py-4 pb-24">
-        {!state?.cdpReachable && (
+        {state != null && !state.cdpReachable && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             <div className="font-semibold">CDP unreachable</div>
             <p className="mt-1 text-amber-100/90">
@@ -201,6 +203,43 @@ export function App(): React.ReactElement {
             )}
           </div>
         )}
+
+        {state != null &&
+          state.cdpReachable &&
+          state.windows.length === 0 && (
+            <div className="rounded-xl border border-rose-500/35 bg-rose-950/35 px-4 py-4 text-sm text-rose-50">
+              <div className="font-semibold text-white">
+                Relay online — no Cursor window to control yet
+              </div>
+              <p className="mt-2 leading-relaxed text-rose-100/90">
+                <strong className="text-white">Live</strong> only means this page is connected to
+                your relay. <strong className="text-white">Send to agent</strong> and approvals stay
+                disabled until the relay attaches to at least one Cursor window over CDP.
+              </p>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-rose-100/90">
+                <li>
+                  On the computer running <code className="rounded bg-black/30 px-1 text-xs">npm start</code>, fully quit Cursor (Cmd+Q on macOS), then relaunch with remote debugging enabled.
+                </li>
+                <li>
+                  Open a folder/workspace in Cursor and open the Agent / Chat sidebar so there is an active UI to mirror.
+                </li>
+                <li>
+                  In a browser on that same machine, open{' '}
+                  <code className="rounded bg-black/30 px-1 text-xs">http://127.0.0.1:9222/json/list</code>{' '}
+                  — you should see page targets; if the list is empty, the debugging port is wrong or Cursor did not start with the flag.
+                </li>
+              </ol>
+              {state.diagnostics != null && (
+                <p className="mt-3 text-xs text-rose-200/85">
+                  Last CDP poll: {state.diagnostics.targetCount} target(s) in{' '}
+                  <code className="rounded bg-black/30 px-1">/json/list</code>,{' '}
+                  {state.diagnostics.pageTargetCount} page target(s) with a debugger WebSocket. If
+                  page targets are 0, Cursor is almost certainly not running with{' '}
+                  <code className="rounded bg-black/30 px-1">--remote-debugging-port=9222</code>.
+                </p>
+              )}
+            </div>
+          )}
 
         {state && state.windows.length > 1 && (
           <label className="block rounded-2xl border border-white/10 bg-[#161b22] p-3">
@@ -263,13 +302,25 @@ export function App(): React.ReactElement {
                   disabled={!socket || !!busy}
                   onClick={() =>
                     socket &&
+                    active &&
                     runAck(
                       'approve',
-                      new Promise(resolve => {
+                      new Promise<void>(resolve => {
                         socket.emit(
                           'approve',
                           { targetId: active.targetId },
-                          resolve
+                          (res: { ok?: boolean; detail?: string } | undefined) => {
+                            if (!res?.ok) {
+                              setActionError(
+                                res?.detail === 'no_button'
+                                  ? 'No Approve/Run button found — use Cursor on the desktop for this step, or update relay DOM selectors.'
+                                  : res?.detail === 'not_connected'
+                                    ? 'That window is not connected over CDP anymore. Restart Cursor with --remote-debugging-port=9222.'
+                                    : res?.detail ?? 'Approve failed'
+                              );
+                            }
+                            resolve();
+                          }
                         );
                       })
                     )
@@ -283,13 +334,23 @@ export function App(): React.ReactElement {
                   disabled={!socket || !!busy}
                   onClick={() =>
                     socket &&
+                    active &&
                     runAck(
                       'reject',
-                      new Promise(resolve => {
+                      new Promise<void>(resolve => {
                         socket.emit(
                           'reject',
                           { targetId: active.targetId },
-                          resolve
+                          (res: { ok?: boolean; detail?: string } | undefined) => {
+                            if (!res?.ok) {
+                              setActionError(
+                                res?.detail === 'no_button'
+                                  ? 'No Reject button found in the Cursor UI.'
+                                  : res?.detail ?? 'Reject failed'
+                              );
+                            }
+                            resolve();
+                          }
                         );
                       })
                     )
@@ -322,6 +383,14 @@ export function App(): React.ReactElement {
             {active.lastError && (
               <p className="mt-2 text-xs text-rose-400">{active.lastError}</p>
             )}
+            {!active.connected && (
+              <p className="mt-3 rounded-lg border border-rose-500/30 bg-rose-950/25 px-3 py-2 text-xs leading-relaxed text-rose-100">
+                CDP socket is not connected to this window — approvals and send may fail until you
+                restart Cursor with{' '}
+                <code className="rounded bg-black/30 px-1">--remote-debugging-port=9222</code> and
+                keep this workspace window open.
+              </p>
+            )}
           </section>
         )}
 
@@ -329,6 +398,18 @@ export function App(): React.ReactElement {
           <div className="mb-2 text-xs uppercase tracking-wide text-[#8b949e]">
             Send prompt
           </div>
+          {!active && (
+            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-amber-100">
+              <strong className="text-amber-50">Why the button stays grey:</strong> the relay has
+              not attached to any Cursor window yet, so there is nowhere to type. Fix CDP on the
+              machine running the relay (see the notice above if shown), then refresh this page.
+            </p>
+          )}
+          {actionError && (
+            <p className="mb-3 rounded-lg border border-rose-500/35 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+              {actionError}
+            </p>
+          )}
           <textarea
             value={promptText}
             onChange={e => setPromptText(e.target.value)}
@@ -344,13 +425,23 @@ export function App(): React.ReactElement {
               active &&
               runAck(
                 'prompt',
-                new Promise(resolve => {
+                new Promise<void>(resolve => {
                   socket.emit(
                     'prompt',
                     { targetId: active.targetId, text: promptText },
-                    () => {
-                      setPromptText('');
-                      resolve(null);
+                    (res: { ok?: boolean; detail?: string } | undefined) => {
+                      if (!res?.ok) {
+                        setActionError(
+                          res?.detail === 'no_input'
+                            ? 'Could not find the agent input box — open Agent chat in Cursor on that window.'
+                            : res?.detail === 'not_connected'
+                              ? 'Window disconnected from CDP.'
+                              : res?.detail ?? 'Send failed'
+                        );
+                      } else {
+                        setPromptText('');
+                      }
+                      resolve();
                     }
                   );
                 })

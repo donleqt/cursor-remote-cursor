@@ -11,9 +11,15 @@ export interface WindowSnapshot {
   lastError?: string;
 }
 
+export interface RelayDiagnostics {
+  targetCount: number;
+  pageTargetCount: number;
+}
+
 export interface RelayState {
   cdpReachable: boolean;
   cdpError?: string;
+  diagnostics?: RelayDiagnostics;
   windows: WindowSnapshot[];
   updatedAt: number;
 }

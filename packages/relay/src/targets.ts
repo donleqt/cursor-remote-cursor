@@ -27,7 +27,9 @@ export function parseWindowLabel(title: string): string {
 export function pickWorkbenchPages(targets: CdpTargetListItem[]): CdpTargetListItem[] {
   const pages = targets.filter(t => t.type === 'page' && t.webSocketDebuggerUrl);
   const workbench = pages.filter(
-    t => t.url.includes('workbench') || t.title.toLowerCase().includes('cursor')
+    t =>
+      /workbench|vscode|cursor|electron/i.test(t.url) ||
+      /cursor|vscode|code -/i.test(t.title)
   );
   return workbench.length ? workbench : pages;
 }
