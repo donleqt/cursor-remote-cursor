@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { RelayState } from './types';
+import { apiUrl, getRelayBaseUrl, setRelayBaseUrl } from './relay-base';
 
 const TOKEN_KEY = 'crc_token';
 
@@ -25,6 +26,11 @@ export function App(): React.ReactElement {
   const [promptText, setPromptText] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [pick, setPick] = useState<string | null>(null);
+  const [relayUrlInput, setRelayUrlInput] = useState('');
+
+  useEffect(() => {
+    setRelayUrlInput(getRelayBaseUrl());
+  }, []);
 
   useEffect(() => {
     const wins = state?.windows ?? [];
@@ -38,7 +44,8 @@ export function App(): React.ReactElement {
   useEffect(() => {
     if (!token) return;
 
-    const s = io({
+    const base = getRelayBaseUrl();
+    const s = io(base || undefined, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       auth: { token },
@@ -47,7 +54,9 @@ export function App(): React.ReactElement {
     });
 
     s.on('connect_error', () => {
-      setLoginError('Could not connect — check relay is running and password.');
+      setLoginError(
+        'Could not connect — check relay is running, password, and relay URL (required on Vercel).'
+      );
     });
 
     s.on('state', (payload: RelayState) => setState(payload));
@@ -62,8 +71,9 @@ export function App(): React.ReactElement {
 
   const login = useCallback(async () => {
     setLoginError(null);
+    setRelayBaseUrl(relayUrlInput);
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch(apiUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -78,7 +88,7 @@ export function App(): React.ReactElement {
     } catch {
       setLoginError('Network error.');
     }
-  }, [password]);
+  }, [password, relayUrlInput]);
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY);
@@ -106,7 +116,24 @@ export function App(): React.ReactElement {
           </h1>
           <p className="mb-6 text-center text-sm text-[#8b949e]">
             Enter the relay password from your computer (terminal output or extension).
+            When this page is hosted on Vercel, set relay URL to your tunnel (Tailscale,
+            Cloudflare Tunnel, ngrok, etc.) pointing at the machine running{' '}
+            <code className="rounded bg-black/30 px-1 py-0.5 text-[11px]">npm start</code>.
           </p>
+          <label className="mb-2 block text-xs text-[#8b949e]">
+            Relay base URL <span className="text-[#6e7681]">(optional if opened from relay)</span>
+          </label>
+          <input
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={relayUrlInput}
+            onChange={e => setRelayUrlInput(e.target.value)}
+            className="mb-4 w-full rounded-lg border border-white/10 bg-[#0d1117] px-3 py-2 text-sm text-white outline-none ring-emerald-500/40 focus:ring-2"
+            placeholder="https://your-machine.tailnet.ts.net:3847"
+          />
           <label className="mb-2 block text-xs text-[#8b949e]">Password</label>
           <input
             type="password"

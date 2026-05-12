@@ -8,3 +8,4 @@ packages/extension/out/
 .DS_Store
 packages/relay/data/
 .env
+.vercel

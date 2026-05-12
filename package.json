@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "copy-web": "rm -rf packages/relay/static && mkdir -p packages/relay/static && cp -r packages/web/dist/. packages/relay/static/",
+    "build:vercel": "npm run build -w @cursor-remote-cursor/web",
     "build": "npm run build -w packages/web && npm run copy-web && npm run build -w packages/relay && npm run build -w packages/extension",
     "dev": "npm run build -w packages/web && concurrently \"npm run dev -w packages/relay\" \"npm run dev -w packages/web\"",
     "start": "npm run start -w packages/relay"

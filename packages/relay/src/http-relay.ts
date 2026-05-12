@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
@@ -10,6 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createRelayApp(config: RelayConfig, monitor: WindowMonitor) {
   const app = express();
+  app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '512kb' }));
 
   app.get('/api/health', (_req, res) => {

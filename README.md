@@ -87,6 +87,29 @@ Settings prefix: `cursorRemoteCursor.*`
 - Cursor’s DOM changes between releases. If approval buttons stop matching, update selectors in `packages/relay/src/dom/extract.ts` or open an issue with a screenshot.
 - “Approve” maps to clicking the same buttons you would click in the sidebar; exotic dialogs may still need the desktop.
 
+## Deploy UI to Vercel
+
+The **relay must still run on your Mac** (CDP + long-lived WebSocket). Vercel only hosts the **static web UI**.
+
+From the repo root (requires [Vercel CLI](https://vercel.com/docs/cli)):
+
+```bash
+npm install
+npx vercel deploy -y
+```
+
+Preview deployments use `npm run build:vercel`, which builds `packages/web` only.
+
+### Connect from the deployed site
+
+1. Expose your local relay with Tailscale, Cloudflare Tunnel, ngrok, or LAN IP + `SERVER_HOST=0.0.0.0`.
+2. Open your `*.vercel.app` URL on your phone.
+3. Enter **Relay base URL** (e.g. `https://your-machine.example:3847`) and the relay **password**.
+
+Optional: set **`VITE_RELAY_URL`** in the Vercel project’s Environment Variables and redeploy to default the relay URL for all visitors.
+
+Ensure your relay is updated so REST preflight works from the browser (`cors` is enabled on `/api/*`).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
