@@ -1,0 +1,10 @@
+node_modules/
+dist/
+packages/relay/dist/
+packages/relay/static/
+packages/web/dist/
+packages/extension/out/
+*.vsix
+.DS_Store
+packages/relay/data/
+.env

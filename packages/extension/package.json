@@ -1,0 +1,53 @@
+{
+  "name": "@cursor-remote-cursor/vscode-extension",
+  "displayName": "Cursor Remote (local relay)",
+  "description": "Open the mobile web UI for cursor-remote-cursor and check relay health.",
+  "version": "1.0.0",
+  "publisher": "donleqt",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorRemoteCursor.openWeb",
+        "title": "Cursor Remote: Open Web Client"
+      },
+      {
+        "command": "cursorRemoteCursor.showPasswordHint",
+        "title": "Cursor Remote: Show Relay Password Hint"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Remote",
+      "properties": {
+        "cursorRemoteCursor.serverHost": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host where the relay HTTP server listens."
+        },
+        "cursorRemoteCursor.serverPort": {
+          "type": "number",
+          "default": 3847,
+          "description": "Port for the relay HTTP/WebSocket server."
+        },
+        "cursorRemoteCursor.passwordFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional absolute path to packages/relay/data/.relay-password when running the relay from this repo."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.3"
+  }
+}
