@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { RelayState } from './types';
 import { apiUrl, getRelayBaseUrl, setRelayBaseUrl } from './relay-base';
+import { SetupGuide } from './SetupGuide';
 
 const TOKEN_KEY = 'crc_token';
 
@@ -106,22 +107,22 @@ export function App(): React.ReactElement {
 
   if (!token) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#161b22] p-6 shadow-xl">
-          <div className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-[#8b949e]">
-            Cursor Remote
-          </div>
-          <h1 className="mb-1 text-center text-xl font-semibold text-white">
-            Sign in
-          </h1>
-          <p className="mb-6 text-center text-sm text-[#8b949e]">
-            Enter the relay password from your computer (terminal output or extension).
-            When this page is hosted on Vercel, set relay URL to your tunnel (Tailscale,
-            Cloudflare Tunnel, ngrok, etc.) pointing at the machine running{' '}
-            <code className="rounded bg-black/30 px-1 py-0.5 text-[11px]">npm start</code>.
-          </p>
+      <div className="flex min-h-full flex-col items-center px-4 py-8 sm:px-6 sm:py-12">
+        <div className="flex w-full max-w-md flex-col gap-8">
+          <SetupGuide />
+          <div className="rounded-2xl border border-white/10 bg-[#161b22] p-6 shadow-xl">
+            <div className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-[#8b949e]">
+              Cursor Remote
+            </div>
+            <h1 className="mb-1 text-center text-xl font-semibold text-white">Sign in</h1>
+            <p className="mb-6 text-center text-sm text-[#8b949e]">
+              Use the steps above on your computer first. Then enter your relay URL (if this page
+              is not served from the same host as the relay) and the password printed when you ran{' '}
+              <code className="rounded bg-black/30 px-1 py-0.5 text-[11px]">npm start</code>.
+            </p>
           <label className="mb-2 block text-xs text-[#8b949e]">
-            Relay base URL <span className="text-[#6e7681]">(optional if opened from relay)</span>
+            Relay base URL{' '}
+            <span className="text-[#6e7681]">(leave empty if this page is from the relay)</span>
           </label>
           <input
             type="url"
@@ -153,6 +154,7 @@ export function App(): React.ReactElement {
           >
             Connect
           </button>
+          </div>
         </div>
       </div>
     );
